@@ -2,6 +2,8 @@
 
 This workspace automates building stock [PyTorch](https://github.com/pytorch/pytorch#from-source) with CUDA enabled for Python 3.10, 3.11, and 3.12 on both Jetson Orin (Ampere, JetPack 6.x) and Jetson AGX Thor (Blackwell, JetPack 7.x). It codifies the upstream PyTorch instructions and the NVIDIA Developer Forum guidance for [Orin builds](https://forums.developer.nvidia.com/t/native-build-of-pytorch-for-jetson/71842) and [Thor/JetPack 7 builds](https://forums.developer.nvidia.com/t/pytorch-2-4-build-jetson-orin/291219).
 
+The nvidia official pip repo only provides specific version of pytorch. With this repo, you can compile your version WITH CUDA SUPPORT.
+
 ## Prerequisites
 
 - JetPack 6.x (Orin) or JetPack 7.x (Thor) with CUDA `/usr/local/cuda` and cuDNN already installed.
@@ -10,7 +12,7 @@ This workspace automates building stock [PyTorch](https://github.com/pytorch/pyt
 
   ```bash
   sudo apt update
-  sudo apt install -y build-essential git cmake ninja-build python3-distutils \
+  sudo apt install -y build-essential git cmake ninja-build \
       libopenblas-dev libopenmpi-dev openmpi-bin libatlas-base-dev libprotobuf-dev \
       protobuf-compiler libssl-dev zlib1g-dev libffi-dev
   ```
@@ -106,3 +108,15 @@ Copy the wheel to other Jetson nodes as needed. Keep the logs handy for support/
 - Refer to the PyTorch source build doc and NVIDIA forum threads listed at the top for more edge-case fixes (e.g., building with TensorRT, CUTLASS tuning, FlashAttention patches, etc.).
 
 Happy compiling!
+
+Special notes: The complete repo is written by Codex GPT-5.1 medium. I do not garentee this will work on your machine. Merge requests welcomed.
+Tested on:
+Jetson Thor: Linux thor-taco 6.8.12-tegra #1 SMP PREEMPT Thu Sep 25 15:19:42 PDT 2025 aarch64 aarch64 aarch64 GNU/Linux
+  Soc: tegra264
+  CUDA Arch BIN: 13.0
+  L4T: 38.2.2
+  Jetpack: 7.0
+  CUDA: 13.0.48
+  cuDNN: 9.12.0
+  TensorRT: 10.13.3.9
+  
