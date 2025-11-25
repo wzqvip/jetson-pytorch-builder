@@ -1,0 +1,62 @@
+diff --git a/cmake/Modules/FindCUB.cmake b/cmake/Modules/FindCUB.cmake
+index e053964e6e4..eadb86b7431 100644
+--- a/cmake/Modules/FindCUB.cmake
++++ b/cmake/Modules/FindCUB.cmake
+@@ -2,8 +2,56 @@
+ #  CUB_FOUND        - system has CUB
+ #  CUB_INCLUDE_DIRS - the CUB include directory
+ 
++set(_CUB_HINTS)
++set(_CUB_TARGET_SUFFIXES
++        "/targets/sbsa-linux/include"
++        "/targets/aarch64-linux/include"
++        "/targets/x86_64-linux/include"
++)
++
++if(DEFINED CUDA_TOOLKIT_INCLUDE)
++  list(APPEND _CUB_HINTS "${CUDA_TOOLKIT_INCLUDE}")
++endif()
++if(DEFINED CUDA_TOOLKIT_ROOT_DIR)
++  list(APPEND _CUB_HINTS "${CUDA_TOOLKIT_ROOT_DIR}/include")
++  foreach(_suffix ${_CUB_TARGET_SUFFIXES})
++    list(APPEND _CUB_HINTS "${CUDA_TOOLKIT_ROOT_DIR}${_suffix}")
++  endforeach()
++endif()
++if(DEFINED CUDA_INCLUDE_DIRS)
++  list(APPEND _CUB_HINTS ${CUDA_INCLUDE_DIRS})
++endif()
++if(DEFINED CUDAToolkit_INCLUDE_DIRS)
++  list(APPEND _CUB_HINTS ${CUDAToolkit_INCLUDE_DIRS})
++endif()
++if(DEFINED ENV{CUDA_HOME})
++  list(APPEND _CUB_HINTS "$ENV{CUDA_HOME}/include")
++  foreach(_suffix ${_CUB_TARGET_SUFFIXES})
++    list(APPEND _CUB_HINTS "$ENV{CUDA_HOME}${_suffix}")
++  endforeach()
++endif()
++if(DEFINED ENV{CUDA_PATH})
++  list(APPEND _CUB_HINTS "$ENV{CUDA_PATH}/include")
++  foreach(_suffix ${_CUB_TARGET_SUFFIXES})
++    list(APPEND _CUB_HINTS "$ENV{CUDA_PATH}${_suffix}")
++  endforeach()
++endif()
++list(APPEND _CUB_HINTS "/usr/local/cuda/include" "/opt/cuda/include")
++
++set(_CUB_EXPANDED_HINTS)
++foreach(_hint ${_CUB_HINTS})
++  if(_hint)
++    list(APPEND _CUB_EXPANDED_HINTS "${_hint}")
++    if(EXISTS "${_hint}/cccl")
++      list(APPEND _CUB_EXPANDED_HINTS "${_hint}/cccl")
++    endif()
++  endif()
++endforeach()
++
++list(REMOVE_DUPLICATES _CUB_EXPANDED_HINTS)
++
+ find_path(CUB_INCLUDE_DIR
+-        HINTS "${CUDA_TOOLKIT_INCLUDE}"
++        HINTS ${_CUB_EXPANDED_HINTS}
+         NAMES cub/cub.cuh
+         DOC "The directory where CUB includes reside"
+ )

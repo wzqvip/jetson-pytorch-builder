@@ -1,0 +1,46 @@
+diff --git a/aten/src/ATen/cuda/cub.cuh b/aten/src/ATen/cuda/cub.cuh
+index c5261534dd4..60597b01b8f 100644
+--- a/aten/src/ATen/cuda/cub.cuh
++++ b/aten/src/ATen/cuda/cub.cuh
+@@ -7,6 +7,9 @@
+ #include <limits>
+ 
+ #include <ATen/cuda/cub_definitions.cuh>
++#if !defined(USE_ROCM) && CUB_VERSION >= 200000
++#include <cuda/std/functional>
++#endif
+ 
+ #if USE_GLOBAL_CUB_WRAPPED_NAMESPACE()
+ 
+@@ -51,6 +54,12 @@
+ #define ROCM_HIPCUB(x) x
+ #endif
+ 
++#if CUB_VERSION < 200000
++#define AT_CUDA_CUB_EQUALITY() NO_ROCM(at_cuda_detail)::cub::Equality()
++#else
++#define AT_CUDA_CUB_EQUALITY() ::cuda::std::equal_to<>()
++#endif
++
+ #if (!defined(USE_ROCM) && !CUB_SUPPORTS_NV_BFLOAT16()) || defined(USE_ROCM)
+ 
+ #if !defined(USE_ROCM)
+@@ -364,7 +373,7 @@ inline void inclusive_sum_by_key(KeysInputIteratorT keys, ValuesInputIteratorT i
+   TORCH_CHECK(num_items <= std::numeric_limits<int>::max(),
+     "cub InclusiveSumByKey does not support more than INT_MAX elements");
+   CUB_WRAPPER(at_cuda_detail::cub::DeviceScan::InclusiveSumByKey,
+-      keys, input, output, num_items, at_cuda_detail::cub::Equality(), at::cuda::getCurrentCUDAStream());
++      keys, input, output, num_items, AT_CUDA_CUB_EQUALITY(), at::cuda::getCurrentCUDAStream());
+ }
+ 
+ template <typename KeysInputIteratorT, typename ValuesInputIteratorT, typename ValuesOutputIteratorT, typename ScanOpT>
+@@ -372,7 +381,7 @@ inline void inclusive_scan_by_key(KeysInputIteratorT keys, ValuesInputIteratorT
+   TORCH_CHECK(num_items <= std::numeric_limits<int>::max(),
+     "cub InclusiveSumByKey does not support more than INT_MAX elements");
+   CUB_WRAPPER(at_cuda_detail::cub::DeviceScan::InclusiveScanByKey,
+-      keys, input, output, scan_op, num_items, at_cuda_detail::cub::Equality(), at::cuda::getCurrentCUDAStream());
++      keys, input, output, scan_op, num_items, AT_CUDA_CUB_EQUALITY(), at::cuda::getCurrentCUDAStream());
+ }
+ 
+ #endif
+

@@ -1,0 +1,10 @@
+diff --git a/third_party/FP16/CMakeLists.txt b/third_party/FP16/CMakeLists.txt
+index 937cf3b54b5..1a62278f235 100644
+--- a/third_party/FP16/CMakeLists.txt
++++ b/third_party/FP16/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12 FATAL_ERROR)
++CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
+ 
+ INCLUDE(GNUInstallDirs)
+ 

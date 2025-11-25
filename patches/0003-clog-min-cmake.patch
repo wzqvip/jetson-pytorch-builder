@@ -1,0 +1,13 @@
+diff --git a/aten/src/ATen/native/quantized/cpu/qnnpack/deps/clog/CMakeLists.txt b/aten/src/ATen/native/quantized/cpu/qnnpack/deps/clog/CMakeLists.txt
+index e763e4e3ba9..2b62765cf2f 100644
+--- a/aten/src/ATen/native/quantized/cpu/qnnpack/deps/clog/CMakeLists.txt
++++ b/aten/src/ATen/native/quantized/cpu/qnnpack/deps/clog/CMakeLists.txt
+@@ -4,7 +4,7 @@
+ # This source code is licensed under the BSD-style license found in the
+ # LICENSE file in the root directory of this source tree.
+ 
+-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
++cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+ 
+ include(GNUInstallDirs)
+ 

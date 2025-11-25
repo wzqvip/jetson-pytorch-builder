@@ -1,0 +1,251 @@
+diff --git a/aten/src/ATen/cuda/cub.cu b/aten/src/ATen/cuda/cub.cu
+index 839652f581a..25d7285323c 100644
+--- a/aten/src/ATen/cuda/cub.cu
++++ b/aten/src/ATen/cuda/cub.cu
+@@ -15,8 +15,8 @@ struct SumOp {
+ 
+ template <typename input_t, typename output_t>
+ void inclusive_sum_truncating(const input_t *input, output_t *output, int64_t num_items) {
+-  using NO_ROCM(at_cuda_detail)::cub::Sum;
+-  inclusive_scan(input, output, Sum{}, num_items);
++  using scalar_t = std::common_type_t<input_t, output_t>;
++  inclusive_scan(input, output, SumOp<scalar_t>{}, num_items);
+ }
+ 
+ template void inclusive_sum_truncating(const int32_t *input, int32_t *output, int64_t num_items);
+@@ -33,18 +33,26 @@ template void exclusive_sum_in_common_type(const int32_t *input, int32_t *output
+ template void exclusive_sum_in_common_type(const int64_t *input, int64_t *output, int64_t num_items);
+ 
+ namespace {
+-struct CountMaskOp {
+-  __device__ int64_t operator() (const uint8_t &x) const {
+-    return x != 0;
++__global__ void mask_to_int64(const uint8_t* mask, int64_t* out, int64_t n) {
++  auto idx = blockIdx.x * blockDim.x + threadIdx.x;
++  if (idx < n) {
++    out[idx] = mask[idx] != 0;
+   }
+-};
++}
+ }
+ 
+ void mask_exclusive_sum(const uint8_t *mask, int64_t *output_idx, int64_t n) {
+-  CountMaskOp op{};
+-  auto iter = NO_ROCM(at_cuda_detail)::cub::TransformInputIterator<
+-      bool, decltype(op), decltype(mask)>(mask, op);
+-  exclusive_scan(iter, output_idx, SumOp<int64_t>{}, int64_t{0}, n);
++  if (n <= 0) {
++    return;
++  }
++  auto allocator = c10::cuda::CUDACachingAllocator::get();
++  auto temp = allocator->allocate(static_cast<size_t>(n) * sizeof(int64_t));
++  auto temp_ptr = static_cast<int64_t*>(temp.get());
++  constexpr int threads = 256;
++  const int blocks = static_cast<int>((n + threads - 1) / threads);
++  mask_to_int64<<<blocks, threads, 0, at::cuda::getCurrentCUDAStream()>>>(mask, temp_ptr, n);
++  C10_CUDA_KERNEL_LAUNCH_CHECK();
++  exclusive_scan(temp_ptr, output_idx, SumOp<int64_t>{}, int64_t{0}, n);
+ }
+ 
+ }  // namespace at::cuda::cub
+diff --git a/aten/src/ATen/native/cuda/Embedding.cu b/aten/src/ATen/native/cuda/Embedding.cu
+index b8fb51304e4..82d386ffadc 100644
+--- a/aten/src/ATen/native/cuda/Embedding.cu
++++ b/aten/src/ATen/native/cuda/Embedding.cu
+@@ -16,6 +16,8 @@
+ #include <ATen/native/cuda/thread_constants.h>
+ 
+ #if CUB_SUPPORTS_SCAN_BY_KEY()
++#include <thrust/functional.h>
++#include <thrust/iterator/constant_iterator.h>
+ #include <thrust/iterator/reverse_iterator.h>
+ #endif
+ 
+@@ -317,7 +319,7 @@ Tensor embedding_dense_backward_cuda(const Tensor & grad_, const Tensor & indice
+       auto count_data = count.mutable_data_ptr<index_t>();
+       cuda::cub::inclusive_sum_by_key(
+         sorted_data,
+-        at_cuda_detail::cub::ConstantInputIterator<index_t>(1),
++        thrust::make_constant_iterator<index_t>(1),
+         count_data,
+         num_indices
+       );
+@@ -329,7 +331,7 @@ Tensor embedding_dense_backward_cuda(const Tensor & grad_, const Tensor & indice
+         thrust::make_reverse_iterator(sorted_data + num_indices),
+         thrust::make_reverse_iterator(static_cast<const index_t*>(count_data) + num_indices),
+         thrust::make_reverse_iterator(count_data + num_indices),
+-        at_cuda_detail::cub::Max(),
++        thrust::maximum<index_t>{},
+         num_indices
+       );
+     });
+diff --git a/aten/src/ATen/native/cuda/EmbeddingBag.cu b/aten/src/ATen/native/cuda/EmbeddingBag.cu
+index 7c9f845b7ee..6795282319f 100644
+--- a/aten/src/ATen/native/cuda/EmbeddingBag.cu
++++ b/aten/src/ATen/native/cuda/EmbeddingBag.cu
+@@ -31,6 +31,8 @@
+ #include <c10/macros/Macros.h>
+ 
+ #if CUB_SUPPORTS_SCAN_BY_KEY()
++#include <thrust/functional.h>
++#include <thrust/iterator/constant_iterator.h>
+ #include <thrust/iterator/reverse_iterator.h>
+ #endif
+ 
+@@ -212,7 +214,7 @@ Tensor embedding_bag_backward_cuda_sum_avg(
+       auto count_data = count.mutable_data_ptr<index_t>();
+       cuda::cub::inclusive_sum_by_key(
+         sorted_data,
+-        at_cuda_detail::cub::ConstantInputIterator<index_t>(1),
++        thrust::make_constant_iterator<index_t>(1),
+         count_data,
+         num_indices
+       );
+@@ -222,9 +224,9 @@ Tensor embedding_bag_backward_cuda_sum_avg(
+       //  count: 1 3 3 3 2 2 1 2 2
+       cuda::cub::inclusive_scan_by_key(
+         thrust::make_reverse_iterator(sorted_data + num_indices),
++        thrust::make_reverse_iterator(static_cast<const index_t*>(count_data) + num_indices),
+         thrust::make_reverse_iterator(count_data + num_indices),
+-        thrust::make_reverse_iterator(count_data + num_indices),
+-        at_cuda_detail::cub::Max(),
++        thrust::maximum<index_t>{},
+         num_indices
+       );
+     });
+diff --git a/aten/src/ATen/native/cuda/Nonzero.cu b/aten/src/ATen/native/cuda/Nonzero.cu
+index e87f46cd844..c284b1b368e 100644
+--- a/aten/src/ATen/native/cuda/Nonzero.cu
++++ b/aten/src/ATen/native/cuda/Nonzero.cu
+@@ -7,6 +7,8 @@
+ #include <ATen/cuda/detail/KernelUtils.h>
+ #include <ATen/cuda/detail/OffsetCalculator.cuh> //for MAX_DIMS
+ #include <ATen/cuda/cub.cuh>
++#include <thrust/iterator/counting_iterator.h>
++#include <thrust/iterator/transform_iterator.h>
+ 
+ #ifndef AT_PER_OPERATOR_HEADERS
+ #include <ATen/NativeFunctions.h>
+@@ -65,7 +67,7 @@ void nonzero_cuda_out_impl(const Tensor& self, Tensor& out){
+   size_t temp_storage_bytes=0;
+   auto& allocator = *c10::cuda::CUDACachingAllocator::get();
+   auto num_nonzeros = allocator.allocate(sizeof(int));
+-  cub::TransformInputIterator<bool, NonZeroOp<scalar_t>, const scalar_t*> itr(self_.const_data_ptr<scalar_t>(), NonZeroOp<scalar_t>());
++  auto itr = thrust::make_transform_iterator(self_.const_data_ptr<scalar_t>(), NonZeroOp<scalar_t>());
+   cub::DeviceReduce::Sum(nullptr, temp_storage_bytes, itr, (int*)num_nonzeros.get(), N, stream);
+   auto temp_storage = allocator.allocate(temp_storage_bytes);
+   cub::DeviceReduce::Sum(temp_storage.get(), temp_storage_bytes, itr, (int*)num_nonzeros.get(), N, stream);
+@@ -82,7 +84,7 @@ void nonzero_cuda_out_impl(const Tensor& self, Tensor& out){
+       out.resize_({self.dim(), num_nonzeros_h});
+   //Scalars are expected to produce output of size (1,0), so we can't write to it
+   if (self.dim() > 0) {
+-    cub::CountingInputIterator<int64_t> counting_itr(0);
++    auto counting_itr = thrust::make_counting_iterator<int64_t>(0);
+     temp_storage_bytes = 0;
+     cub::DeviceSelect::Flagged(nullptr, temp_storage_bytes, counting_itr, itr,
+       out_temp.mutable_data_ptr<int64_t>(), (int*)num_nonzeros.get(), N, stream);
+diff --git a/aten/src/ATen/native/cuda/TensorTopK.cu b/aten/src/ATen/native/cuda/TensorTopK.cu
+index d06efa66351..b3e52a63313 100644
+--- a/aten/src/ATen/native/cuda/TensorTopK.cu
++++ b/aten/src/ATen/native/cuda/TensorTopK.cu
+@@ -14,6 +14,8 @@
+ #include <ATen/cuda/cub.cuh>
+ #include <c10/cuda/CUDACachingAllocator.h>
+ #include <ATen/cuda/detail/KernelUtils.h>
++#include <thrust/iterator/counting_iterator.h>
++#include <thrust/iterator/transform_iterator.h>
+ 
+ #include <c10/macros/Macros.h>
+ 
+@@ -733,9 +735,8 @@ void launch(
+     desired, counts, num_blocks, blocks_per_slice, kthCounts);
+   C10_CUDA_KERNEL_LAUNCH_CHECK();
+   // Do a prefix scan of withinKCounts and kthCounts using slice_idx as keys to get the starting index of each block
+-  using counting_iter_t = cub::CountingInputIterator<uint32_t, uint32_t>;
+-  using slice_idx_iter_t = cub::TransformInputIterator<uint32_t, BlockIdxToKey, counting_iter_t>;
+-  slice_idx_iter_t slice_idx_iter(counting_iter_t(0), BlockIdxToKey(blocks_per_slice));
++  auto counting_iter = thrust::make_counting_iterator<uint32_t>(0);
++  auto slice_idx_iter = thrust::make_transform_iterator(counting_iter, BlockIdxToKey(blocks_per_slice));
+   at::cuda::cub::inclusive_sum_by_key(slice_idx_iter, withinKCounts, withinKCounts, num_blocks);
+   at::cuda::cub::inclusive_sum_by_key(slice_idx_iter, kthCounts, kthCounts, num_blocks);
+   // copy topk values to output tensor
+diff --git a/aten/src/ATen/native/cuda/UniqueCub.cu b/aten/src/ATen/native/cuda/UniqueCub.cu
+index bbd8673bcf5..f61dca74252 100644
+--- a/aten/src/ATen/native/cuda/UniqueCub.cu
++++ b/aten/src/ATen/native/cuda/UniqueCub.cu
+@@ -5,6 +5,8 @@
+ #include <ATen/cuda/detail/KernelUtils.h>
+ #include <ATen/cuda/CUDAApplyUtils.cuh>
+ #include <ATen/cuda/cub.cuh>
++#include <thrust/functional.h>
++#include <thrust/iterator/transform_iterator.h>
+ 
+ #include <c10/core/DeviceArray.h>
+ #include <c10/util/Load.h>
+@@ -53,9 +55,8 @@ struct LoadBoolOp {
+ 
+ auto wrap_input_iterator(const bool *data) {
+   // See NOTE [Loading boolean values]
+-  LoadBoolOp op;
+-  return NO_ROCM(at_cuda_detail)::cub::TransformInputIterator<bool, LoadBoolOp, const uint8_t*, int>(
+-      reinterpret_cast<const uint8_t*>(data), op);
++  return thrust::make_transform_iterator(
++      reinterpret_cast<const uint8_t*>(data), LoadBoolOp{});
+ }
+ 
+ // A variation of compute_unique (defined in Unique.cu) that doesn't allow
+@@ -258,11 +259,10 @@ struct UniqueCub<bool> {
+     c10::DeviceArray<int> tmp_num_true(*allocator, 1);
+ 
+     const bool* self_data = self.const_data_ptr<bool>();
+-    MapNumberOfTrueValues op;
+-    NO_ROCM(at_cuda_detail)::cub::TransformInputIterator<int, MapNumberOfTrueValues, const uint8_t*, int>
+-        data_iter(reinterpret_cast<const uint8_t*>(self_data), op);
+-    at::cuda::cub::reduce(data_iter, tmp_num_true.get(), num_inp,
+-                          NO_ROCM(at_cuda_detail)::cub::Sum{}, 0);
++    auto data_iter = thrust::make_transform_iterator(
++        reinterpret_cast<const uint8_t*>(self_data), MapNumberOfTrueValues{});
++    at::cuda::cub::reduce(
++        data_iter, tmp_num_true.get(), num_inp, thrust::plus<int>{}, 0);
+ 
+     auto options = self.options();
+     output = at::empty({2}, self.options());
+diff --git a/torch/csrc/cuda/shared/nvtx.cpp b/torch/csrc/cuda/shared/nvtx.cpp
+index 4fb72c5f79b..bb875f4210e 100644
+--- a/torch/csrc/cuda/shared/nvtx.cpp
++++ b/torch/csrc/cuda/shared/nvtx.cpp
+@@ -1,7 +1,15 @@
+ #ifdef _WIN32
+ #include <wchar.h> // _wgetenv for nvtx
+ #endif
++#if defined(__has_include)
++#if __has_include(<nvtx3/nvToolsExt.h>)
++#include <nvtx3/nvToolsExt.h>
++#else
+ #include <nvToolsExt.h>
++#endif
++#else
++#include <nvToolsExt.h>
++#endif
+ #include <torch/csrc/utils/pybind.h>
+ 
+ namespace torch::cuda::shared {
+diff --git a/torch/csrc/profiler/stubs/cuda.cpp b/torch/csrc/profiler/stubs/cuda.cpp
+index d0cb3746a21..fb90aeb1d0b 100644
+--- a/torch/csrc/profiler/stubs/cuda.cpp
++++ b/torch/csrc/profiler/stubs/cuda.cpp
+@@ -1,6 +1,14 @@
+ #include <sstream>
+ 
++#if defined(__has_include)
++#if __has_include(<nvtx3/nvToolsExt.h>)
++#include <nvtx3/nvToolsExt.h>
++#else
+ #include <nvToolsExt.h>
++#endif
++#else
++#include <nvToolsExt.h>
++#endif
+ 
+ #include <c10/cuda/CUDAGuard.h>
+ #include <c10/util/ApproximateClock.h>

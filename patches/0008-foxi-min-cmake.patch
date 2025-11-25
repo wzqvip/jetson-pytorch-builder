@@ -1,0 +1,12 @@
+diff --git a/third_party/foxi/CMakeLists.txt b/third_party/foxi/CMakeLists.txt
+index b406d0f..4120c94 100644
+--- a/third_party/foxi/CMakeLists.txt
++++ b/third_party/foxi/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ # Minimum CMake required
+-cmake_minimum_required(VERSION 3.1)
++cmake_minimum_required(VERSION 3.21)
+ # Set default build type
+ if(NOT CMAKE_BUILD_TYPE)
+   message(STATUS "Build type not set - defaulting to Release")
+

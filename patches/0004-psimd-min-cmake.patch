@@ -1,0 +1,10 @@
+diff --git a/third_party/psimd/CMakeLists.txt b/third_party/psimd/CMakeLists.txt
+index aa2a0781ff4..9b8d97323b4 100644
+--- a/third_party/psimd/CMakeLists.txt
++++ b/third_party/psimd/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12 FATAL_ERROR)
++CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
+ 
+ INCLUDE(GNUInstallDirs)
+ 
