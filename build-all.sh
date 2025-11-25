@@ -11,7 +11,7 @@ if [[ ! -x "$BUILD_SCRIPT" ]]; then
 fi
 
 if [[ "$#" -eq 0 ]]; then
-  set -- 3.10 3.11 3.12
+  set -- 3.8 3.9 3.10 3.11 3.12
 fi
 
 STATUS=0

@@ -1,8 +1,6 @@
 # PyTorch from Source on Jetson Orin & Thor
 
-This workspace automates building stock [PyTorch](https://github.com/pytorch/pytorch) with CUDA enabled for Python 3.10, 3.11, and 3.12 on both Jetson Orin (Ampere, JetPack 6.x) and Jetson AGX Thor (Blackwell, JetPack 7.x). It codifies the upstream PyTorch instructions and the NVIDIA Developer Forum guidance.
-
-The nvidia official pip repo only provides specific version of pytorch. With this repo, you can compile your version WITH CUDA SUPPORT.
+This workspace automates building stock [PyTorch](https://github.com/pytorch/pytorch#from-source) with CUDA enabled for Python 3.8–3.12 on both Jetson Orin (Ampere, JetPack 6.x) and Jetson AGX Thor (Blackwell, JetPack 7.x). It codifies the upstream PyTorch instructions and the NVIDIA Developer Forum guidance for [Orin builds](https://forums.developer.nvidia.com/t/native-build-of-pytorch-for-jetson/71842) and [Thor/JetPack 7 builds](https://forums.developer.nvidia.com/t/pytorch-2-4-build-jetson-orin/291219). NVIDIA 官方 pip 仓库只提供少量预编译版本，这里可以自编译带 CUDA 的版本以匹配需求。
 
 ## Prerequisites
 
@@ -46,7 +44,7 @@ The `build.sh` script auto-detects the compute capability (`TORCH_CUDA_ARCH_LIST
 ```bash
 cd ~/jetson-pytorch-builder
 chmod +x build.sh build-all.sh
-# Build all supported versions (3.10, 3.11, 3.12)
+# Build all supported versions (3.8–3.12)
 ./build-all.sh
 # OR build one at a time
 #    ^ Python version  ^ optional PyTorch git ref/tag
@@ -114,7 +112,9 @@ Copy the wheel to other Jetson nodes as needed. Keep the logs handy for support/
 
 ### Versioning and torchvision / torchaudio compatibility
 
-By default PyTorch's build system emits versions like `2.4.0a0+git<sha>`. When installing matching `torchvision` / `torchaudio` wheels, `pip` expects an exact version (e.g., `torchvision 0.19.0` requires `torch==2.4.0`). Two ways to stay sane:
+By default PyTorch's build system emits versions like `2.4.0a0+git<sha>`. This repo now **auto-sets `TORCH_BUILD_VERSION` to the numeric part of your tag** (e.g., `v2.4.0` → `2.4.0`), so the wheel name/metadata matches what torchvision/torchaudio expect. For non-tag refs (e.g., `main`), no override is applied unless you set it explicitly.
+
+Two ways to stay sane:
 
 1. **Set an explicit version for your wheel.**
 

@@ -98,6 +98,10 @@ REPO_DIR="$SRC_DIR/pytorch"
 LOG_FILE="$LOG_DIR/pytorch-py${PY_VERSION}-$(date +%Y%m%d-%H%M%S).log"
 DEST_DIR="$WHEEL_DIR/py${PY_VERSION//./}"
 export TORCH_VERSION_OVERRIDE TORCH_BUILD_NUMBER_OVERRIDE
+# If user did not specify a version, try to derive one from the ref (e.g., v2.4.0 -> 2.4.0)
+if [[ -z "$TORCH_VERSION_OVERRIDE" && "$PYTORCH_BRANCH" =~ ^v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+  TORCH_VERSION_OVERRIDE="${BASH_REMATCH[1]}"
+fi
 
 ensure_conda() {
   if command -v conda >/dev/null 2>&1; then
@@ -171,7 +175,7 @@ else
   echo "Auto-detected TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST" | tee -a "$LOG_FILE"
 fi
 if [[ -n "$TORCH_VERSION_OVERRIDE" ]]; then
-  echo "Overriding TORCH_BUILD_VERSION=$TORCH_VERSION_OVERRIDE (build number $TORCH_BUILD_NUMBER_OVERRIDE)" | tee -a "$LOG_FILE"
+  echo "Using TORCH_BUILD_VERSION=$TORCH_VERSION_OVERRIDE (build number $TORCH_BUILD_NUMBER_OVERRIDE)" | tee -a "$LOG_FILE"
 fi
 
 echo "Starting PyTorch build for Python $PY_VERSION (log: $LOG_FILE)..." | tee -a "$LOG_FILE"
