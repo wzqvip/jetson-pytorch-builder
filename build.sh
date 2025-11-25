@@ -59,8 +59,9 @@ write_host_summary() {
 }
 
 PY_VERSION="${1:-3.10}"
+PYTORCH_DEFAULT_REF="${PYTORCH_BRANCH:-v2.4.0}"
+PYTORCH_BRANCH="${2:-$PYTORCH_DEFAULT_REF}"
 PYTORCH_REPO="${PYTORCH_REPO:-https://github.com/pytorch/pytorch.git}"
-PYTORCH_BRANCH="${PYTORCH_BRANCH:-v2.4.0}"
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 MAX_JOBS="${MAX_JOBS:-$(nproc)}"
 DETECTED_CUDA_ARCH="$(detect_cuda_arch_list)"
@@ -72,6 +73,8 @@ USE_NNPACK="${USE_NNPACK:-0}"
 USE_QNNPACK="${USE_QNNPACK:-0}"
 USE_NVTX="${USE_NVTX:-0}"
 USE_PRIORITIZED_TEXT_FOR_LD="${USE_PRIORITIZED_TEXT_FOR_LD:-0}"
+TORCH_VERSION_OVERRIDE="${TORCH_VERSION_OVERRIDE:-}"
+TORCH_BUILD_NUMBER_OVERRIDE="${TORCH_BUILD_NUMBER_OVERRIDE:-1}"
 EXTRA_CUDA_INCLUDE_PATHS=""
 CUDA_INCLUDE_CANDIDATES=(
   "$CUDA_HOME/include"
@@ -94,6 +97,7 @@ ENV_NAME="torch-py${PY_VERSION//./}"
 REPO_DIR="$SRC_DIR/pytorch"
 LOG_FILE="$LOG_DIR/pytorch-py${PY_VERSION}-$(date +%Y%m%d-%H%M%S).log"
 DEST_DIR="$WHEEL_DIR/py${PY_VERSION//./}"
+export TORCH_VERSION_OVERRIDE TORCH_BUILD_NUMBER_OVERRIDE
 
 ensure_conda() {
   if command -v conda >/dev/null 2>&1; then
@@ -159,11 +163,15 @@ fi
 mkdir -p "$DEST_DIR"
 
 write_host_summary
+echo "Building PyTorch ref ${PYTORCH_BRANCH} for Python ${PY_VERSION}" | tee -a "$LOG_FILE"
 
 if [[ "${TORCH_CUDA_ARCH_LIST}" != "${DETECTED_CUDA_ARCH}" ]]; then
   echo "Using user-provided TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST (auto-detected $DETECTED_CUDA_ARCH)" | tee -a "$LOG_FILE"
 else
   echo "Auto-detected TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST" | tee -a "$LOG_FILE"
+fi
+if [[ -n "$TORCH_VERSION_OVERRIDE" ]]; then
+  echo "Overriding TORCH_BUILD_VERSION=$TORCH_VERSION_OVERRIDE (build number $TORCH_BUILD_NUMBER_OVERRIDE)" | tee -a "$LOG_FILE"
 fi
 
 echo "Starting PyTorch build for Python $PY_VERSION (log: $LOG_FILE)..." | tee -a "$LOG_FILE"
@@ -190,6 +198,10 @@ if ! conda run -n "$ENV_NAME" bash -c "
   export MAX_JOBS=\"$MAX_JOBS\"
   export TORCH_CUDA_ARCH_LIST=\"$TORCH_CUDA_ARCH_LIST\"
   export CMAKE_ARGS=\"${CMAKE_ARGS:-} -DCMAKE_POLICY_VERSION=3.25 -DCMAKE_POLICY_VERSION_MINIMUM=3.5\"
+  if [[ -n \"${TORCH_VERSION_OVERRIDE}\" ]]; then
+    export TORCH_BUILD_VERSION=\"${TORCH_VERSION_OVERRIDE}\"
+    export TORCH_BUILD_NUMBER=\"${TORCH_BUILD_NUMBER_OVERRIDE}\"
+  fi
   python setup.py bdist_wheel
 " |& tee -a "$LOG_FILE"; then
   echo "Build failed. See $LOG_FILE for details." >&2
