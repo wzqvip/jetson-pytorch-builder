@@ -1,6 +1,6 @@
 # PyTorch from Source on Jetson Orin & Thor
 
-This workspace automates building stock [PyTorch](https://github.com/pytorch/pytorch#from-source) with CUDA enabled for Python 3.10, 3.11, and 3.12 on both Jetson Orin (Ampere, JetPack 6.x) and Jetson AGX Thor (Blackwell, JetPack 7.x). It codifies the upstream PyTorch instructions and the NVIDIA Developer Forum guidance for [Orin builds](https://forums.developer.nvidia.com/t/native-build-of-pytorch-for-jetson/71842) and [Thor/JetPack 7 builds](https://forums.developer.nvidia.com/t/pytorch-2-4-build-jetson-orin/291219).
+This workspace automates building stock [PyTorch](https://github.com/pytorch/pytorch) with CUDA enabled for Python 3.10, 3.11, and 3.12 on both Jetson Orin (Ampere, JetPack 6.x) and Jetson AGX Thor (Blackwell, JetPack 7.x). It codifies the upstream PyTorch instructions and the NVIDIA Developer Forum guidance.
 
 The nvidia official pip repo only provides specific version of pytorch. With this repo, you can compile your version WITH CUDA SUPPORT.
 
