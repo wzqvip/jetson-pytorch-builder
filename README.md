@@ -16,7 +16,6 @@ The nvidia official pip repo only provides specific version of pytorch. With thi
       libopenblas-dev libopenmpi-dev openmpi-bin libatlas-base-dev libprotobuf-dev \
       protobuf-compiler libssl-dev zlib1g-dev libffi-dev
   ```
-
 - `~/miniconda3` (already present on this machine) or any conda distribution. The scripts will create isolated envs per Python version.
 
 Thor-specific sanity checks (taken from this devkit, JetPack 7.0 / Ubuntu 24.04):
@@ -64,18 +63,35 @@ Each run:
 
 Successful builds print the wheel path at the end and log everything to `logs/pytorch-py<version>-<timestamp>.log`.
 
+## Current Support
+
+* ###  Jetson Orin
+
+  * [ ] Python 3.8
+  * [ ] Python 3.9
+  * [ ] Python 3.10
+  * [ ] Python 3.11
+  * [ ] Python 3.12
+* ###  Jetson Thor
+
+  * [ ] Python 3.8
+  * [ ] Python 3.9
+  * [ ] Python 3.10
+  * [X] Python 3.11
+  * [ ] Python 3.12
+
 ## Customisation
 
 All relevant knobs can be changed through environment variables:
 
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `PYTORCH_BRANCH` | `v2.4.0` | Upstream tag/branch to checkout. |
-| `PYTORCH_REPO` | `https://github.com/pytorch/pytorch.git` | Clone source. |
-| `TORCH_CUDA_ARCH_LIST` | auto (`11.0` on Thor, `8.7` on Orin) | Target GPU architectures. Override to cross-compile. |
-| `MAX_JOBS` | `$(nproc)` | Parallel compilation jobs. Tune to control RAM usage. |
-| `CUDA_HOME` | `/usr/local/cuda` | CUDA root. |
-| `USE_NCCL`, `USE_DISTRIBUTED`, `USE_MKLDNN`, `USE_NNPACK`, `USE_QNNPACK` | Jetson defaults set in `build.sh`. |
+| Variable                                                                           | Default                                    | Meaning                                               |
+| ---------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `PYTORCH_BRANCH`                                                                 | `v2.4.0`                                 | Upstream tag/branch to checkout.                      |
+| `PYTORCH_REPO`                                                                   | `https://github.com/pytorch/pytorch.git` | Clone source.                                         |
+| `TORCH_CUDA_ARCH_LIST`                                                           | auto (`11.0` on Thor, `8.7` on Orin)   | Target GPU architectures. Override to cross-compile.  |
+| `MAX_JOBS`                                                                       | `$(nproc)`                               | Parallel compilation jobs. Tune to control RAM usage. |
+| `CUDA_HOME`                                                                      | `/usr/local/cuda`                        | CUDA root.                                            |
+| `USE_NCCL`, `USE_DISTRIBUTED`, `USE_MKLDNN`, `USE_NNPACK`, `USE_QNNPACK` | Jetson defaults set in `build.sh`.       |                                                       |
 
 Example:
 
@@ -119,4 +135,3 @@ Jetson Thor: Linux thor-taco 6.8.12-tegra #1 SMP PREEMPT Thu Sep 25 15:19:42 PDT
   CUDA: 13.0.48
   cuDNN: 9.12.0
   TensorRT: 10.13.3.9
-  
