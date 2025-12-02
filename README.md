@@ -64,35 +64,40 @@ Successful builds print the wheel path at the end and log everything to `logs/py
 
 ## Current Support
 
-* ###  Jetson Orin
+Pytorch 2.4.0
+
+Pytorch 2.9.1
+
+* ### Jetson Orin
 
   * [ ] Python 3.8
   * [ ] Python 3.9
   * [ ] Python 3.10
   * [ ] Python 3.11
   * [ ] Python 3.12
-* ###  Jetson Thor
+* ### Jetson Thor
 
-  * [ ] Python 3.8
-  * [ ] Python 3.9
-  * [ ] Python 3.10
+  * [X] Python 3.8
+  * [X] Python 3.9
+  * [X] Python 3.10
   * [X] Python 3.11
-  * [ ] Python 3.12
+  * [X] Python 3.12
+
 
 ## Customisation
 
 All relevant knobs can be changed through environment variables:
 
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `PYTORCH_BRANCH` | `v2.4.0` | Upstream tag/branch to checkout (can also pass as the second argument to `build.sh`). |
-| `PYTORCH_REPO` | `https://github.com/pytorch/pytorch.git` | Clone source. |
-| `TORCH_CUDA_ARCH_LIST` | auto (`11.0` on Thor, `8.7` on Orin) | Target GPU architectures. Override to cross-compile. |
-| `MAX_JOBS` | `$(nproc)` | Parallel compilation jobs. Tune to control RAM usage. |
-| `CUDA_HOME` | `/usr/local/cuda` | CUDA root. |
-| `USE_NCCL`, `USE_DISTRIBUTED`, `USE_MKLDNN`, `USE_NNPACK`, `USE_QNNPACK` | Jetson defaults set in `build.sh`. |
-| `TORCH_VERSION_OVERRIDE` | auto from tag (e.g., `v2.4.0` → `2.4.0`) | Forces `TORCH_BUILD_VERSION` so the wheel filename/metadata advertises your custom build. Set empty to keep upstream git-style versions or to supply your own (e.g., `2.4.0-jetson.1`). |
-| `TORCH_BUILD_NUMBER_OVERRIDE` | `1` | Optional build number passed along when `TORCH_VERSION_OVERRIDE` is set. |
+| Variable                                                                           | Default                                      | Meaning                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PYTORCH_BRANCH`                                                                 | `v2.4.0`                                   | Upstream tag/branch to checkout (can also pass as the second argument to `build.sh`).                                                                                                     |
+| `PYTORCH_REPO`                                                                   | `https://github.com/pytorch/pytorch.git`   | Clone source.                                                                                                                                                                               |
+| `TORCH_CUDA_ARCH_LIST`                                                           | auto (`11.0` on Thor, `8.7` on Orin)     | Target GPU architectures. Override to cross-compile.                                                                                                                                        |
+| `MAX_JOBS`                                                                       | `$(nproc)`                                 | Parallel compilation jobs. Tune to control RAM usage.                                                                                                                                       |
+| `CUDA_HOME`                                                                      | `/usr/local/cuda`                          | CUDA root.                                                                                                                                                                                  |
+| `USE_NCCL`, `USE_DISTRIBUTED`, `USE_MKLDNN`, `USE_NNPACK`, `USE_QNNPACK` | Jetson defaults set in `build.sh`.         |                                                                                                                                                                                             |
+| `TORCH_VERSION_OVERRIDE`                                                         | auto from tag (e.g.,`v2.4.0` → `2.4.0`) | Forces `TORCH_BUILD_VERSION` so the wheel filename/metadata advertises your custom build. Set empty to keep upstream git-style versions or to supply your own (e.g., `2.4.0-jetson.1`). |
+| `TORCH_BUILD_NUMBER_OVERRIDE`                                                    | `1`                                        | Optional build number passed along when `TORCH_VERSION_OVERRIDE` is set.                                                                                                                  |
 
 Example:
 
@@ -123,7 +128,6 @@ Two ways to stay sane:
    ```
 
    The resulting wheel becomes `torch-2.4.0-jetson.1-...whl`, making it easy to match dependencies.
-
 2. **Install torchvision without re-resolving torch.**
 
    If you keep the default `2.4.0a0+git...` version, install the matching source release and skip dependency checks:
