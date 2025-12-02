@@ -64,9 +64,8 @@ Successful builds print the wheel path at the end and log everything to `logs/py
 
 ## Current Support
 
-Pytorch 2.4.0
-
-Pytorch 2.9.1
+* [X] Pytorch 2.4.0
+* [ ] Pytorch 2.9.1
 
 * ### Jetson Orin
 
