@@ -63,16 +63,17 @@ Each run:
 Successful builds print the wheel path at the end and log everything to `logs/pytorch-py<version>-<timestamp>.log`.
 
 ## Current Support
+Note: Marked is tested versions. Some may work but not tested/updated yet.
 
 * [X] Pytorch 2.4.0
-* [ ] Pytorch 2.9.1
+* [ ] Pytorch 2.9.1  (partial)
 
 * ### Jetson Orin
 
   * [ ] Python 3.8
   * [ ] Python 3.9
   * [ ] Python 3.10
-  * [ ] Python 3.11
+  * [X] Python 3.11
   * [ ] Python 3.12
 * ### Jetson Thor
 
